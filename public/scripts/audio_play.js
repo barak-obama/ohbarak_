@@ -23,13 +23,15 @@ function filter_ohbaraks(){
 function getApprovedTracks() {
     const starCountRef = firebase.database().ref('approved');
 
+
+
     starCountRef.on('value', function (audio_files) {
 
-        audio_files.forEach(function (file) {
+        audio_files.forEach(async function (file) {
             const file_name = file.val();
             const path = "approved/" + file_name;
 
-            var url = storageRef.child(path).getDownloadURL();
+            var url = await getDownloadURL(storageRef, path);
             ohbaraksUrls[file_name] = url;
             ohbaraks.push(file_name);
             all_ohbaraks.push(file_name)
@@ -38,7 +40,6 @@ function getApprovedTracks() {
         filter_ohbaraks();
     });
 }
-
 
 document.getElementById("ohbarak").addEventListener("click", function () {
     const ohbarak = ohbaraks[Math.floor(Math.random() * ohbaraks.length)];
@@ -63,3 +64,14 @@ nsfw_checkbox.addEventListener("change", filter_ohbaraks);
 
 
 getApprovedTracks();
+
+function getDownloadURL(storageRef, path){
+    return new Promise(function(resolve, reject) {
+        storageRef.child(path).getDownloadURL().then(function(url){
+            resolve(url);
+        }).catch(function (error) {
+            reject(error);
+        })
+    });
+
+}
