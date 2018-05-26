@@ -1,8 +1,6 @@
-var ohbaraks = [];
-const ohbaraksUrls = {};
-const ohbaraksAudios = {};
+let ohbaraks = [];
 const all_ohbaraks = [];
-var current_ohbarak = null;
+let current_ohbarak = null;
 
 const storageRef = firebase.storage().ref();
 
@@ -10,12 +8,11 @@ const storageRef = firebase.storage().ref();
 nsfw_checkbox = document.getElementById("nsfw");
 
 
-
-function filter_ohbaraks(){
-    if (nsfw_checkbox.checked) {
-        ohbaraks = all_ohbaraks;
+function filter_ohbaraks(allohbaraks, nsfw){
+    if (nsfw) {
+        return allohbaraks;
     } else {
-        ohbaraks = all_ohbaraks.filter(name => !name.includes("nsfw"));
+        return allohbaraks.filter(ohbarak => !ohbarak.nsfw);
     }
 }
 
@@ -25,45 +22,58 @@ function getApprovedTracks() {
 
 
 
-    starCountRef.on('value', function (audio_files) {
+    starCountRef.on('value', async function (audio_files) {
+        audio_files = audio_files.val();
 
-        audio_files.forEach(async function (file) {
-            const file_name = file.val();
+        for(let i = 0; i < audio_files.length; i++){
+            const file_name = audio_files[i];
             const path = "approved/" + file_name;
 
-            var url = await getDownloadURL(storageRef, path);
-            ohbaraksUrls[file_name] = url;
-            ohbaraks.push(file_name);
-            all_ohbaraks.push(file_name)
-        });
+            let url = await getDownloadURL(storageRef, path);
 
-        filter_ohbaraks();
+            let new_ohbarak = {
+                name: file_name,
+                audio: new Audio(url),
+                url: url,
+                nsfw: file_name.includes("nsfw")
+            };
+
+            if(!new_ohbarak.nsfw){
+                ohbaraks.push(new_ohbarak)
+            }
+
+            all_ohbaraks.push(new_ohbarak);
+        }
+
+        ohbaraks = filter_ohbaraks(all_ohbaraks, nsfw_checkbox.checked);
     });
 }
 
-document.getElementById("ohbarak").addEventListener("click", function () {
+
+function play_ohbarak() {
+    if(ohbaraks.length === 0){
+        setTimeout(play_ohbarak, 300);
+        return;
+    }
     const ohbarak = ohbaraks[Math.floor(Math.random() * ohbaraks.length)];
 
     if (current_ohbarak) {
-        current_ohbarak.pause();
-        current_ohbarak.currentTime = 0;
+        current_ohbarak.audio.pause();
+        current_ohbarak.audio.currentTime = 0;
     }
 
-    if (ohbaraksAudios[ohbarak]) {
-        ohbaraksAudios[ohbarak].currentTime = 0;
-        ohbaraksAudios[ohbarak].play();
-    } else {
-        ohbaraksAudios[ohbarak] = new Audio(ohbaraksUrls[ohbarak]["i"]);
-        current_ohbarak = ohbaraksAudios[ohbarak];
-        ohbaraksAudios[ohbarak].play();
-    }
+    ohbarak.audio.currentTime = 0;
+    ohbarak.audio.play();
+    current_ohbarak = ohbarak;
+}
+
+document.getElementById("ohbarak").addEventListener("click", play_ohbarak);
+
+
+nsfw_checkbox.addEventListener("change", function () {
+    ohbaraks = filter_ohbaraks(all_ohbaraks, nsfw_checkbox.checked);
 });
 
-
-nsfw_checkbox.addEventListener("change", filter_ohbaraks);
-
-
-getApprovedTracks();
 
 function getDownloadURL(storageRef, path){
     return new Promise(function(resolve, reject) {
@@ -75,3 +85,6 @@ function getDownloadURL(storageRef, path){
     });
 
 }
+
+
+getApprovedTracks();
