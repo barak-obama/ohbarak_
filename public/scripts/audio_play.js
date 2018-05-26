@@ -52,7 +52,7 @@ function getApprovedTracks() {
 
 function play_ohbarak() {
     if(ohbaraks.length === 0){
-        setTimeout(play_ohbarak, 300);
+        setTimeout(play_ohbarak, 100);
         return;
     }
     const ohbarak = ohbaraks[Math.floor(Math.random() * ohbaraks.length)];
